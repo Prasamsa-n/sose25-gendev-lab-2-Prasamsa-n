@@ -1,0 +1,76 @@
+import "DwyerPatterns.spectra"
+
+spec Spec
+
+// This is a Spectra specification for a Smart Room Lighting System.
+// It controls room lights and window blinds based on occupancy, sunlight, and time of day.
+
+// ---------------------------
+// Environment Variables
+// ---------------------------
+
+env boolean isOccupied;       // Someone is present in the room
+env boolean isDayTime;        // It is currently daytime
+env boolean isSunny;          // Sunlight is bright enough
+
+// ---------------------------
+// System Variables
+// ---------------------------
+
+sys boolean mainLightOn;      // Main room light is ON
+sys boolean windowBlindsOpen; // Window blinds are OPEN
+sys boolean nightLampOn;      // Night lamp is ON
+
+// ---------------------------
+// Assumptions (about environment)
+// ---------------------------
+
+// Initial Assumptions
+asm ini !isOccupied;          // Initially, room is unoccupied
+asm ini isDayTime;            // Assume it starts during daytime
+
+// Safety Assumptions
+asm alw (isDayTime -> next(isDayTime | !isDayTime));  
+// Time of day changes gradually, not instantly flipping
+
+asm alw !(isOccupied & !isDayTime & isSunny);  
+// At night, the sun can't be shining even if someone is present
+
+// Justice Assumptions
+asm alwEv isDayTime;          
+// It will eventually become daytime again
+
+asm alwEv isOccupied;         
+// Someone will eventually enter the room
+
+// ---------------------------
+// Guarantees (system behavior)
+// ---------------------------
+
+// Initial Guarantees
+gar ini !mainLightOn;         
+// Main light is off initially
+
+gar ini !nightLampOn;         
+// Night lamp is off initially
+
+// Safety Guarantees
+gar alw (isOccupied & !isSunny -> mainLightOn);  
+// If the room is occupied and it's not sunny, turn on the main light
+
+gar alw (!isOccupied -> !mainLightOn);           
+// If no one is in the room, main light should be off
+
+gar alw (isDayTime & isSunny -> windowBlindsOpen); 
+// If it’s sunny during the day, open the blinds
+
+gar alw (!isDayTime -> nightLampOn);             
+// Turn on night lamp if it's night
+
+// Justice Guarantees
+gar alwEv !isOccupied -> !mainLightOn;           
+// When room becomes empty, the light will eventually turn off
+
+gar alwEv isDayTime -> !nightLampOn;             
+// During the day, the night lamp will eventually turn off
+

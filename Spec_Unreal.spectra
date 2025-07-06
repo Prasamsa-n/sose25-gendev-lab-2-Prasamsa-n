@@ -1,0 +1,57 @@
+import "DwyerPatterns.spectra"
+
+spec Spec_Unreal
+
+// Unrealizable Smart Room Lighting System
+// The system requires behavior based on room occupancy,
+// but there is no guarantee that someone will ever enter.
+
+// ---------------------------
+// Environment Variables
+// ---------------------------
+
+env boolean isOccupied;       // Someone is present in the room
+env boolean isDayTime;        // It is currently daytime
+env boolean isSunny;          // Sunlight is bright enough
+
+// ---------------------------
+// System Variables
+// ---------------------------
+
+sys boolean mainLightOn;      // Main room light is ON
+sys boolean windowBlindsOpen; // Window blinds are OPEN
+sys boolean nightLampOn;      // Night lamp is ON
+
+// ---------------------------
+// Assumptions
+// ---------------------------
+
+asm ini !isOccupied;          
+asm ini isDayTime;
+
+asm alw (isDayTime -> next(isDayTime | !isDayTime));  
+asm alw !(isOccupied & !isDayTime & isSunny);  
+
+asm alwEv isDayTime;          
+// FIX: Without this assumption, the spec is unrealizable
+// asm alwEv isOccupied;         
+
+// ---------------------------
+// Guarantees
+// ---------------------------
+
+gar ini !mainLightOn;         
+gar ini !nightLampOn;         
+
+gar alw (isOccupied & !isSunny -> mainLightOn);  
+gar alw (!isOccupied -> !mainLightOn);           
+gar alw (isDayTime & isSunny -> windowBlindsOpen); 
+gar alw (!isDayTime -> nightLampOn);             
+
+// This justice condition **requires the environment to become occupied at some point**
+// Without the corresponding assumption, this is **unrealizable**
+gar alwEv (isOccupied);         
+// System must see the room occupied eventually
+
+gar alwEv isDayTime -> !nightLampOn;
+
