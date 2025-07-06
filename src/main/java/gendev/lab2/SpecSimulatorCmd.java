@@ -1,64 +1,67 @@
 package gendev.lab2;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 import tau.smlab.syntech.controller.executor.ControllerExecutor;
 import tau.smlab.syntech.games.controller.jits.BasicJitController;
 
 public class SpecSimulatorCmd {
 
-    public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {
 
-        Map<String, String> inputs = new HashMap<>();
-        Scanner scanner = new Scanner(System.in);
+		Map<String, String> inputs = new HashMap<>();
 
-        // Instantiate the controller executor using the compiled controller in "out/jit"
-        ControllerExecutor executor = new ControllerExecutor(new BasicJitController(), "out/jit", "Spec");
+		// Instantiate a new controller executor
+		ControllerExecutor executor = new ControllerExecutor(new BasicJitController(), "out/jit", "Spec");
 
-        boolean iniState = true;
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-        System.out.println("Greenhouse Controller Simulation Started...");
-        System.out.println("Enter environment values (true/false). Type 'exit' to quit.");
+		boolean iniState = true;
 
-        while (true) {
-            inputs.clear();
+		System.out.println("Starting Smart Room Lighting System Simulator.");
+		System.out.println("Enter input values for each step: true/false");
 
-            System.out.print("Is temperature high? (tempHigh): ");
-            String temp = scanner.nextLine();
-            if (temp.equalsIgnoreCase("exit")) break;
-            inputs.put("tempHigh", temp);
+		while (true) {
+			inputs.clear();
 
-            System.out.print("Is soil dry? (soilDry): ");
-            String soil = scanner.nextLine();
-            if (soil.equalsIgnoreCase("exit")) break;
-            inputs.put("soilDry", soil);
+			// Read inputs from the console
+			System.out.print("isOccupied (true/false): ");
+			String isOccupied = reader.readLine().trim();
 
-            System.out.print("Is light low? (lightLow): ");
-            String light = scanner.nextLine();
-            if (light.equalsIgnoreCase("exit")) break;
-            inputs.put("lightLow", light);
+			System.out.print("isDayTime (true/false): ");
+			String isDayTime = reader.readLine().trim();
 
-            // Send inputs to controller
-            if (iniState) {
-                executor.initState(inputs);
-                iniState = false;
-            } else {
-                executor.updateState(inputs);
-            }
+			System.out.print("isSunny (true/false): ");
+			String isSunny = reader.readLine().trim();
 
-            // Read and print outputs
-            Map<String, String> outputs = executor.getCurrOutputs();
-            System.out.println("---- System Actions ----");
-            System.out.println("Fan On:         " + outputs.get("fanOn"));
-            System.out.println("Water Pump On:  " + outputs.get("waterPumpOn"));
-            System.out.println("Grow Light On:  " + outputs.get("growLightOn"));
-            System.out.println("------------------------\n");
-        }
+			// Put inputs in the map as expected by the controller (strings "true"/"false")
+			inputs.put("isOccupied", isOccupied);
+			inputs.put("isDayTime", isDayTime);
+			inputs.put("isSunny", isSunny);
 
-        scanner.close();
-        System.out.println("Simulation Ended.");
-    }
+			// Execute controller
+			if (iniState) {
+				executor.initState(inputs);
+				iniState = false;
+			} else {
+				executor.updateState(inputs);
+			}
+
+			// Read outputs from the controller
+			boolean mainLightOn = Boolean.parseBoolean(executor.getCurrOutputVal("mainLightOn"));
+			boolean windowBlindsOpen = Boolean.parseBoolean(executor.getCurrOutputVal("windowBlindsOpen"));
+			boolean nightLampOn = Boolean.parseBoolean(executor.getCurrOutputVal("nightLampOn"));
+
+			// Print the system outputs
+			System.out.println("Outputs:");
+			System.out.println(" mainLightOn = " + mainLightOn);
+			System.out.println(" windowBlindsOpen = " + windowBlindsOpen);
+			System.out.println(" nightLampOn = " + nightLampOn);
+			System.out.println("-----------------------------------");
+		}
+	}
 }
